@@ -1,0 +1,19 @@
+21:52:08.479 : Start logging at 2023-05-09 21:52:08 ... 
+
+21:52:08.514 : Using SDL ver 2.0.14
+21:52:08.518 : Using ZLIB ver 1.2.5
+21:52:08.521 : Using Qt ver 5.15.1
+21:52:08.664 : Joystick not opened
+21:52:08.764 : Listening port 30000
+21:52:08.768 : QGLContext created
+21:52:08.785 : QGL OpenGL version: 4.6
+21:52:08.789 : Context made current
+21:52:08.794 : OpenGL Info: VENDOR:       Intel
+21:52:08.800 :              RENDERDER:    Intel(R) UHD Graphics
+21:52:08.803 :              VERSION:      4.6.0 - Build 31.0.101.3729
+21:52:08.807 :              GLSL VERSION: 4.60 - Build 31.0.101.3729
+21:52:08.811 : QGLShaders created
+21:52:08.877 : ega mode = 0
+21:52:08.881 : vid_set_resolution 640 x 400
+21:52:09.042 : SDL audio device opening...success: 48000 960 (32784 / 32784)
+22:02:58.978 : exit

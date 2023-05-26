@@ -1,0 +1,179 @@
+	device zxspectrum128
+	include "defines.asm"
+
+
+
+	; TODO
+	; отработать вейты. (когда еще один ход у игрока - убрать вейт после новой карты) ....
+
+	; FIXME
+	; компьютер скидывает карты которые может оплатить.
+	; компьютер рисует иконку D всегда справой стороны. (первые 3 карты должны рисовать иконку D с левой стороны при сбросе карты)
+
+
+	; Основные правила:
+	; 
+	; Если предназначение урона не указано то урон идет стене. 
+	; DAMAGE 12 при WALL = 10 и TOWER = 20 должен иметь результат: WALL = 0 и TOWER = 18
+	; DAMAGE 12 TO ENEMY TOWER при тех же значениях даст результат: WALL = 10 и TOWER = 8
+	; 
+	; Диапазон значений:
+	; Цены карт прибиты гвоздями.
+	; QUARRY, MAGIC, DUNGEON: (1 - 99) если значение бутет < 1, не будет ежедневного прироста.
+	; Остальные: (0 - 999)
+	; 
+	; 
+	; Особое внимание картам: 
+	; Карты дающие дополнительный ход и более.
+	; Prism, Elven Scout:  (дают 3 хода с учетом хода самой карты, 
+	; где второй ход - принудительное скидывание карты. Сработает ли 4-ый ход если на третьем ходе выбрать карту с play again ?)
+	; Lodestone: Убедиься что компьютер во время тестирования не сможет сбросить данную карту.
+	; 
+	; Найти карты которые неправильно калькулируют ресурсы, либо калькулируют необъявленные ресурсы.
+	; Например в карте указано: +3 WALL, но помимо этого еще случилось +1 TOWER. 
+	; 
+	; Соответствие карт: текст, изображение, тип.
+	; 
+	; Подумать о задержках, что бы игрок смог понять чем походил компьютер и сколько раз.
+	; 
+	; 
+	; 
+	; 
+	; 
+	; 
+	; 
+	; 
+	; 
+	; 
+
+	org #6000
+start:
+	ld	sp,$
+
+	call	IM.im2_init
+
+	ld	hl,(SYSTEM_TIMER)
+	ld	a,r
+	xor	h
+	ld	h,a
+	xor	l
+	ld	l,a
+	ld	(DATA.global_seed),hl
+	ld	hl,#4000
+	ld	de,#4001
+	ld	bc,6143
+	ld	(hl),%01010101
+	ldir
+	call	grid
+	
+	
+	call	GAME.set_resources
+
+
+
+
+.t_l1:
+
+
+	call	GAME.init
+
+.main_loop:
+	ei
+	halt
+
+
+
+	
+	xor 	a
+	out 	(254),a
+
+	call	GAME.run
+
+	jr 	.main_loop
+	
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	include "rendering.asm"
+	include "interrupt.asm"
+	include "display.asm"
+	include "utils.asm"
+	include "player.asm"
+	include "game.asm"
+	include "calc.asm"
+	include "main_menu.asm"
+	include "input.asm"
+	include "card_utils.asm"
+cl_start:
+	include "card_logic.asm"
+cl_end:
+c_data:
+	include "./data/cards.asm"
+c_end:
+font4:
+	incbin "./gfx/font4double.SpecCHR", 0, 768
+card_raw:
+	incbin "./gfx/card_sprites_102.spr"
+card_back_raw:
+	incbin "./gfx/back.spr"		; задник карты
+icons:
+	incbin "./gfx/icon_quarry.spr"
+	incbin "./gfx/icon_magic.spr"
+	incbin "./gfx/icon_dungeon.spr"
+big_icons:
+	incbin "./gfx/big_icon_quarry.spr"
+	incbin "./gfx/big_icon_magic.spr"
+	incbin "./gfx/big_icon_dungeon.spr"
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+	include "./data/probability.asm"
+	include "./data/data.asm"
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+	display "------------------------------------------------------------------------------"
+	display "Card logic size: ", /A, cl_end - cl_start
+	display "cards data: ", /A, c_end - c_data
+	display "------------------------------------------------------------------------------"
+	display "players resources address: ", /A, DATA.player_resources
+	display "computer resources address: ", /A, DATA.computer_resources
+	display "players card id`s address: ", /A, DATA.player_cards
+	display "computer card id`s address: ", /A, DATA.enemy_cards
+	display "------------------------------------------------------------------------------"
+	display "probability map address: ", /A, probability_map
+	display "probability player address: ", DATA.probability_player," | ", DATA.probability_player + MAX_CARDS 
+	display "probability computer address: ", DATA.probability_comp," | ", DATA.probability_comp + MAX_CARDS
+	display "------------------------------------------------------------------------------"
+	display "FULL SIZE: ", /A, $ - start
+	display "END ADDRESS: ", /A, $
+	display "------------------------------------------------------------------------------"
+
+	if __ERRORS__ = 0
+		labelslist "user.l"
+		savetap "main.tap", start
+		; if !__ERROR
+		shellexec "C:\ZX\emul\Xpeccy0.6.20230425\xpeccy -s3 --labels C:\ZX\projects\Arcomage_tests\user.l main.tap"
+	endif
+	        /*
+Xpeccy command line arguments:
+-h | --help             show this help
+-d | --debug            start debugging immediately
+-s | --size {1..4}      set window size x1..x4.
+-n | --noflick {0..100} set noflick level
+-r | --ratio {0|1}      set 'keep aspect ratio' property                                                                  
+-p | --profile NAME     set current profile
+-b | --bank NUM         set rampage NUM to #c000 memory window
+-a | --adr ADR          set loading address (see -f below)
+-f | --file NAME        load binary file to address defined by -a (see above)
+-l | --labels NAME      load labels list generated by LABELSLIST in SJASM+
+-c | --console  Windows only: attach to console
+--fullscreen {0|1}      fullscreen mode
+--pc ADR                set PC
+--sp ADR                set SP
+--bp ADR                set fetch brakepoint to address ADR
+--bp NAME               set fetch brakepoint to label NAME (see -l key)
+--disk X                select drive to loading file (0..3 | a..d | A..D)
+--style                 MacOSX only: use native qt style, else 'fusion' will be forced
+--xmap FILE             Load *.xmap file
+        */
