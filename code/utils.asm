@@ -285,7 +285,25 @@ symbol_position:	ifused
 	ret
 	endif
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
+;	+ A - color
+;	+ B - width
+;	+ C - height
+;	+ HL - attributes address
+fill_attr_rect:	ifused
+	push	bc
+	push	hl
+.line:
+	ld	(hl),a
+	inc	l
+	djnz	.line
+	pop	hl
+	ld	bc,#20
+	add	hl,bc
+	pop	bc
+	dec	c
+	ret	z
+	jr	fill_attr_rect
+	endif
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 				ASCII_CONVERTER
 grid:				ATTR_GRID
@@ -313,7 +331,7 @@ card_x_value:
         sbc 	0
 	ret
 ;	+ A - (0-5) cursor position
-;	+ DE - screen address
+;	+ return DE - screen address
 card_scr_by_cursor:
 	call	card_x_value
 	sub	3

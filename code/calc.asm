@@ -6,7 +6,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ;	Расчет стартовых и конечных координат тайлов карты при выскакивании карты снизу экрана.
 tiles_from_bottom:
-	ld	d,#1D			; Y
+	ld	d,#19			; Y
 	xor	a
 	ld	(DATA.symbol_counter),a
 	ld	a,(DATA.cursor)		; A = (0-5)
@@ -33,10 +33,9 @@ tiles_pos:
 	jr	z,.con
 	jr	c,.con
 	call	RENDERING.shift_on_table
-	call	RENDERING.paint_2x4_black
 .con:
 	ld	hl,table_x
-	ld	d,#12			; Y
+	ld	d,#12			; Y hands
 	xor	a
 	ld	(DATA.symbol_counter),a
 	ld	a,(DATA.cursor)		; A = (0-5)
@@ -45,7 +44,14 @@ tiles_pos:
 	cp	(hl)
 	ld	hl,DATA.card_position_table
 	call	.fill_coords_left
-	ld	d,#0A			; Y
+.min_y:
+	ld	d,#0D			; Y table
+	dec	d
+	ld	a,d
+	cp	#0A			; min Y table
+	jr	z,.mo
+	ld	(.min_y + 1),a
+.mo:
 	ld	a,(table_x)		; X
 	ld	b,a
 	pop	af		

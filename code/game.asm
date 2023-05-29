@@ -1,5 +1,4 @@
 ;	+ 
-;	+ TODO: не забыть завести методы обработки карт: elven, prisma
 ;	+ 
 ;	+ init
 ;	+ run
@@ -17,6 +16,7 @@ init:
 	xor	a
 	ld	(DATA.cursor),a
 	ld	(DATA.whose_move),a
+	ld	(_DISPLAY.mess_timer),a
 	inc	a		;	A = 1
 	ld	(DATA.pre_cursor),a
 	ld	(DATA.play_again),a
@@ -26,7 +26,14 @@ init:
 	ld	(DATA.difficulty),a		; TODO убрать отсюда 
 	ld	a,#0D
 	ld	(CALC.table_x),a
+	ld	(CALC.tiles_pos.min_y + 1),a
 
+	// требуется что бы информационное сообщение не начало печатать с начала игры.
+	ld	a,#FF
+	ld	(_DISPLAY.mess_id),a
+	ld	(_DISPLAY.mess_pre_id),a
+	ld	hl,_DISPLAY.info_attr - 1
+	ld	(_DISPLAY.info_attr + 1),hl
 
 	call	CALC.difficulty
 
@@ -106,6 +113,7 @@ run:
 	call	z,_DISPLAY.player_cards
 	pop	af
 	call	nz,_DISPLAY.comp_cards
+	call	_DISPLAY.cursor
 	call	_DISPLAY.move_message
 	call	daily_gain
 .same_player:
@@ -205,7 +213,7 @@ daily_gain:
 	ld	l,(ix + 2)
 	ld	h,(ix + 3)
 	add	hl,de
-	call	CARD_UTILS.resource_limiter_999
+	call	CARD_UTILS.resource_range
 	ld	(ix + 2),l
 	ld	(ix + 3),h
 	inc	ix, ix, ix, ix

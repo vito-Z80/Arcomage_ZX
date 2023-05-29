@@ -170,22 +170,22 @@ resource_icons:
 	ld	hl,icons	; first icon address
 	push	hl
 	ld	de,P_VAL_QUARRY_SCR_ADDR + 1
-	call	RENDERING.symbol
+	call	RENDERING.symbol_cpl
 	inc	hl
 	ld	de,P_VAL_MAGIC_SCR_ADDR + 1
-	call	RENDERING.symbol
+	call	RENDERING.symbol_cpl
 	inc	hl
 	ld	de,P_VAL_DUNGEON_SCR_ADDR + 1
-	call	RENDERING.symbol
+	call	RENDERING.symbol_cpl
 	pop	hl		; first icon address
 	ld	de,E_VAL_QUARRY_SCR_ADDR - 1
-	call	RENDERING.symbol
+	call	RENDERING.symbol_cpl
 	inc	hl
 	ld	de,E_VAL_MAGIC_SCR_ADDR - 1
-	call	RENDERING.symbol
+	call	RENDERING.symbol_cpl
 	inc	hl
 	ld	de,E_VAL_DUNGEON_SCR_ADDR - 1
-	call	RENDERING.symbol
+	call	RENDERING.symbol_cpl
 	inc	hl
 	push	hl
 	ld	de,P_ICON_QUARRY_SCR_ADDR
@@ -340,6 +340,13 @@ card_frame:
 	ld	de,TEXT_NAME_SCR_ADDR
 	ld	b,TEXT_FRAME_WIDTH + 2
 	call	RENDERING.paint_line
+	ld	b,TEXT_FRAME_WIDTH + 2
+	ld	de,#482B
+	call	RENDERING.paint_line
+	ld	hl,#4F2B
+	ld	b,TEXT_FRAME_WIDTH + 2
+	call	RENDERING.fill_line
+
 	call 	RENDERING.paint_frame_color
 	call 	CARD_UTILS.card_id_by_cursor
 	push	af
@@ -429,6 +436,7 @@ under_card_line:
 	dec	e
 	call	attr_to_scr
 	push	de
+	ld	(.line_addr + 1),de
 	; clear area
 	call	RENDERING.clear_4_symb
 	pop	de
@@ -436,7 +444,7 @@ under_card_line:
 	push	de
 	; icon
 	call	CARD_UTILS.card_icon_by_id
-	call	RENDERING.symbol
+	call	RENDERING.symbol_cpl
 .ukl:
 	ld	a,0				; A - card index
 	call	CARD_UTILS.card_cost
@@ -448,7 +456,12 @@ under_card_line:
 	ld	h,0
 	ld	c,h
 	; cost
-	jp	two_digit_number
+	call	two_digit_number
+.line_addr:
+	ld	hl,0
+	ld	b,4
+	call	RENDERING.fill_line
+	ret
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 discard_word:
 	db	"DISCARD!", 0
@@ -479,7 +492,7 @@ discard_mess_on_card:
 	inc	de
 	djnz	.l2
 	pop	de
-	ld	hl,discard_word
+	ld	hl,TEXT.discard_word
 	jr	move_message.loop - 2
 ; discard_icon_comp:
 ; 	ld	a,(PLAYER.deceptive_cursor_cur)
@@ -503,11 +516,11 @@ discard_icon:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-pl_mess:	db	"Player", 0
-en_mess:	db	"Enemy", 0
-pl_addr:	equ	#4004
-en_addr:	equ	#4010 + 9
+pl_addr:	equ	#48E0
+en_addr:	equ	#48FD
 
 
 cls:
@@ -530,7 +543,7 @@ move_message:
 	ld	de,en_addr
 	call	cls
 	
-	ld	hl,pl_mess
+	ld	hl,TEXT.pl_mess
 	ld	de,pl_addr
 	ld	a,(DATA.whose_move)
 	or	a
@@ -560,7 +573,7 @@ move_message:
 	jr	.loop
 	
 .en:
-	ld	hl,en_mess
+	ld	hl,TEXT.en_mess
 	ld	de,en_addr
 	ret	
 
@@ -696,7 +709,7 @@ calc_tile:
 	ld	a,c
 	ld	(.card_id + 1),a
 	ld	a,d
-	cp	#17
+	cp	#19		; Y 
 	jr	nc,set_pos
 	ld	(GAME.phase_card_from_bottom),a		; A != 0
 	call	.from_buff_to_scr	; отобразить тайл из буфера на экран на текущую позицию.
@@ -781,11 +794,15 @@ calc_tile:
 	add	hl,bc		; address of tile in buffer
 	ld	(calc_tile.buff_addr + 1), hl
 	pop	de
+	ld	a,d
+	cp	#58
+	jr	nc,.fin_	; no draw if DE in attributes address or more
 	call	RENDERING.symbol
 	dec	d
 	call	scr_to_attr
 	ld	a,(hl)
 	ld	(de),a
+.fin_
 	pop	bc,de,hl
 	ret
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -793,15 +810,15 @@ calc_tile:
 ;	+ center, left, right
 FONT:	equ	#3C00
 cursor_tiles_table:
-	dw	FONT + 'L' * 8, FONT + 'R' * 8, FONT + '1' * 8, FONT + 'l' * 8, FONT + 'r' * 8
-cursor_free_tiles_table:
-	dw	FONT + ' ' * 8, FONT + ' ' * 8, FONT + ' ' * 8, FONT + ' ' * 8, FONT + ' ' * 8
+	; dw	FONT + 'L' * 8, FONT + 'R' * 8, FONT + '1' * 8, FONT + 'l' * 8, FONT + 'r' * 8
+	dw	frame_top_left, frame_top_right, frame_top, frame_left, frame_right
+; cursor_free_tiles_table:
+; 	dw	FONT + ' ' * 8, FONT + ' ' * 8, FONT + ' ' * 8, FONT + ' ' * 8, FONT + ' ' * 8
 cursor:
 	ld	a,(DATA.cursor)
 	ld	ix,cursor_tiles_table
 	call	card_scr_by_cursor	; DE - screen address
 	push	de
-	ld	c,5
 	ld	a,e
 	sub	33
 	ld	e,a
@@ -893,8 +910,20 @@ cursor:
 	djnz	.r_vert
 	ret
 ;	+ DE - screen address
-;	+ C - color
 paint_cursor:
+	push	de
+	call	CARD_UTILS.card_id_by_cursor
+	call	CARD_UTILS.card_color_by_id
+	ld	a,c
+	rrca
+	rrca
+	rrca
+	and	7
+	or	#40
+	ld	c,a
+	pop	de
+.blck:
+	; ld	a,c
 	call	scr_to_attr
 	ex	de,hl
 	call	.attr_hor_line
@@ -928,7 +957,211 @@ clear_cursor:
 	sub	33
 	ld	e,a
 	ld	c,0
-	jr	paint_cursor
+	jr	paint_cursor.blck
+
+
+
+	;
+	
+	
+	
+	
+	
+; cursor:
+; 	ld	a,(DATA.cursor)
+; 	call	card_scr_by_cursor	; DE - screen address
+; 	ld	a,e
+; 	sub	33
+; 	ld	e,a
+
+; 	push	de,de
+; 	; top left
+; 	ld	hl,frame_top_left
+; 	call	RENDERING.symbol
+; 	; left
+; 	ld	c,4
+; .left_side:
+; 	dec	d
+; 	call	down_de
+; 	ld	hl,frame_left
+; 	call	RENDERING.symbol
+; 	dec	c
+; 	jr	nz,.left_side
+; 	dec	d
+; 	; bottom left
+; 	ld	hl,frame_bototm_left
+; 	call	down_de
+; 	call	RENDERING.symbol
+; 	pop	de
+; 	; top
+; 	inc	de
+; 	ld	a,d
+; 	add	6
+; 	ld	d,a
+; 	ex	de,hl
+; 	ld	b,3
+; 	call	RENDERING.fill_line
+; 	ld	a,%10110101
+; 	ld	(hl),a
+; 	call	CARD_UTILS.card_id_by_cursor
+; 	call	CARD_UTILS.card_color_by_id
+; 	ld	a,c
+; 	rrca
+; 	rrca
+; 	rrca
+; 	and	7
+; 	or	#40
+; 	pop	de
+; .paint:
+; 	ld	c,a	; color
+; 	call	scr_to_attr
+; 	ex	de,hl
+	
+; 	ld	(hl),c
+; 	inc	l
+; 	ld	(hl),c
+; 	inc	l
+; 	ld	(hl),c
+; 	inc	l
+; 	ld	(hl),c
+; 	inc	l
+; 	ld	(hl),c
+; 	push	hl
+; 	ld	de,32-4
+; 	add	hl,de
+; 	ld	de,32
+; 	ld	b,5
+; 	call	.v_lin
+; 	pop	hl
+	
+; 	inc	l
+; 	ld	c,0
+; 	ld	b,6
+; .v_lin:
+; 	ld	(hl),c
+; 	add	hl,de
+; 	djnz	.v_lin
+; 	ret
+	
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+mess_id:		db	#FF
+mess_pre_id:		db	#FF
+mess_char_addr:		dw	0
+mess_scr_addr:		dw	0
+mess_timer:		dw	0
+;	+ Отобразить информационный текст по одной букве отцентрированный по горизонтали.
+;	+ Текст начнет печататься при смене mess_id - индекс информационного сообщения.
+info_text:
+	ld	hl,mess_id
+	ld	a,(hl)			; mess_id
+	ld	b,a
+	inc	hl
+	cp	(hl)			; mess_pre_id
+	jr	z,.disp_next_letter
+	; new calculate
+	ld	(hl),a
+	ld	de,TEXT.map
+	call	CARD_UTILS.obj_addr_in_map
+	ld	(mess_char_addr),hl
+	call	get_text_length		; B - text length
+	ld	a,b
+	rrca
+	rrca
+	and	#1F
+	; sub	-#1f
+	ld	c,a
+	ld	a,#10
+	sub	c
+	ld	l,a
+	ld	h,#40
+	ld	a,c
+	and	1
+	jr	z,.fin
+	dec	l
+.fin:
+	ld	(.half + 1),a
+	ld	(mess_scr_addr),hl
+	jr	clear_info
+
+.disp_next_letter:
+	ld	hl,(mess_char_addr)
+	ld	a,(hl)			; char
+	cp	END_CARD_TEXT
+	ret	z			; end of message
+	push	hl
+	call	char_from_font		; HL - char address
+	ld	de,(mess_scr_addr)
+	push	de
+.half:
+	ld	c,0
+	push	bc
+	call	RENDERING.draw_half
+	pop	bc
+	ld	a,1
+	xor	c
+	ld	(.half + 1),a
+	pop	de
+	jr	nz,.no_shift
+	inc	e
+.no_shift:
+	ld	(mess_scr_addr),de
+	pop	hl
+	inc	hl
+	ld	(mess_char_addr),hl
+	ld	a,(hl)
+	cp	END_CARD_TEXT
+	ret	nz
+.set_timer:
+	ld	a,60* -2		; time
+	ld	(mess_timer),a
+	ret
+in_at_color:
+	db	COLOR_DUNGEON
+	db	COLOR_MAGIC
+	db	COLOR_QUARRY
+	db	%01000111
+	db	0
+info_attr:
+	ld	hl,info_attr - 1
+	ld	a,(hl)
+	or	a
+	ret	z
+	inc	hl
+	ld	(info_attr + 1),hl
+.paint:
+	ld	de,#5804
+	ld	b,24
+.loop:
+	ld	(de),a
+	inc	e
+	djnz	.loop
+	ret
+;	+ A - message index.
+launch_info:
+	ld	(_DISPLAY.mess_id),a
+	ld	a,(#FF)
+	ld	(_DISPLAY.mess_pre_id),a
+launch_info_attr:
+	ld	hl,in_at_color
+	ld	(info_attr + 1),hl
+	ret
+clear_info:
+	ld	hl,#4104
+	ld	de,#4105
+	ld	a,7
+.l2:
+	push	hl,de
+	ld	bc,23 * 256 + 255
+	ld	(hl),0
+.loop:
+	ldi
+	djnz	.loop
+	pop	de,hl
+	inc	d
+	inc	h
+	dec	a
+	ret	z
+	jr	.l2
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	endmodule

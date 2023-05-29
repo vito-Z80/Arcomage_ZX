@@ -28,7 +28,7 @@
                 {
                     "path": "RTS.sld",
                     "asm": "sjasmplus",
-                    "mainFile": "code/main.asm"
+                    "mainFile": "arcomage.asm"
                 },
             ],
             "history": {

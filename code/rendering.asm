@@ -285,6 +285,7 @@ shift_on_table:
 
 	ld	a,#13
 	ld	(CALC.table_x),a
+
 	ld	hl,#484E
 	ld	de,#484C
 	push	de
@@ -294,9 +295,8 @@ shift_on_table:
 	push	bc
 	push	de
 	push	hl
-	ld	b,4
-.lines_4:
-	call	.copy
+	ld	bc,32-6
+	call	copy_mem_5
 	pop	de
 	call	down_de
 	ex	de,hl
@@ -309,38 +309,71 @@ shift_on_table:
 	ex	de,hl
 	pop	de
 	call	scr_to_attr
-	ld	b,4
-.copy:
-	push	bc
-	ldi
-	ldi
-	ldi
-	ldi
-	ldi
-	ldi
 	ld	bc,32-6
-	add	hl,bc
-	ex	de,hl
-	add	hl,bc
-	ex	de,hl
-	pop	bc
-	djnz	.copy
-	ret
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-paint_2x4_black:
-	ld	hl,#5952
+	call	copy_mem_5
+	; shift down on symbol
+	ld	hl,#48CC
+	ld	de,#48EC
+	ld	b,8
+.lin_2:
+	push	bc,de,hl
+	ld	bc,-38
+	call	copy_mem_5
+
+	pop	hl,de,bc
+	inc	d
+	inc	h
+	djnz	.lin_2
+	
+	
+	ld	hl,#59CC
+	ld	de,#59EC
+	ld	bc,-38
+	call	copy_mem_5
+
+	; fill black color
+
+	ld	hl,#5972
 	ld	de,31
-	ld	b,4
+	ld	b,3
 	xor	a
-.loop:
+.att:
 	ld	(hl),a
 	inc	l
 	ld	(hl),a
 	add	hl,de
-	djnz	.loop
+	djnz	.att
+	ld	hl,#594C
+	ld	b,8
+.n_attr:
+	ld	(hl),a
+	inc	l
+	djnz	.n_attr
+	ld	hl,#596C
+	ld	(hl),a
+	inc	l
+	ld	(hl),a
 	ret
+
+
+copy_mem_5:
+	ld	a,5
+.loop:
+	push	bc
+	dup	6
+	ldi
+	edup
+	pop	bc
+	; ld	bc,-38
+	add	hl,bc
+	ex	de,hl
+	add	hl,bc
+	ex	de,hl
+	dec	a
+	ret	z
+	jr	.loop
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-;	+ DE - attributes address
+;	+ DE - screen address
 ; 	+ B - length
 paint_line:
 	push	bc
@@ -351,8 +384,42 @@ paint_line:
 	ld	a,c
 	pop	hl,bc
 .loop:
-	ld	(hl),A
+	ld	(hl),a
 	inc	l
 	djnz	.loop
 	ret
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+;	+ HL - screen address
+;	+ B - line length
+fill_line:
+	ld	a,#FF
+	ld	(hl),a
+	inc	l
+	djnz	fill_line + 2
+	ret
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+fp_color:
+	db	7
+;	+ Подсвечивает атрибутыми ходящего.
+flash_player:
+	ld	a,(fp_color)
+.fp:
+	inc	a
+	and	7
+	jr	z,.fp
+	ld	(fp_color),a
+	ld	hl,#59E0
+	call	.line
+	ld	hl,#59FC
+.line:
+	ld	(hl),a
+	inc	l
+	ld	(hl),a
+	inc	l
+	ld	(hl),a
+	inc	l
+	ld	(hl),a
+	ret
+
+
 	endmodule

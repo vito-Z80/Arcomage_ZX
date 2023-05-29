@@ -105,9 +105,9 @@ press_discard:
 	call	wait
 	call	CALC.tiles_pos
 	call	GAME.fill_buff
-	ld	a,(DATA.cursor)
-	call	card_scr_by_cursor
-	call	clear_undercard
+	; ld	a,(DATA.cursor)
+	; call	card_scr_by_cursor
+	; call	clear_undercard
 .loop:
 	; движение тайлов карты вниз за экран, выравнивание ресурсов (если еще не завершено)
 	ei
@@ -123,9 +123,9 @@ press_discard:
 	call	player_move.un_bo
 	jp	pay.move_complete
 .cant_discard:
-	;	todo	maeeage about cant discard this card
-	call	pay.cant_pay	;	remove
-	ret
+	; Указать индекс для отображения текста что нельзя скинуть эту карту.
+	ld	a,1
+	jp	_DISPLAY.launch_info
 press_pause:
 	ret
 
@@ -156,23 +156,23 @@ clear_undercard:
 	ret
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 show_force_discard_message:
-	; TODO show message
-	call	wait
-	ret
+	ld	a,2
+	jp	_DISPLAY.launch_info
+show_no_money_message:
+	xor	a
+	jp	_DISPLAY.launch_info
 
 player_move:
-	BORDER	7
 	ld	a,(DATA.force_discard_card)
 	or	a
 	; Показать текст о необходимости скинуть любую карту согласно условиям спец. карт, и выйти.
 	jr	nz,show_force_discard_message
-	BORDER	0
 
 	; произвести оплату если возможно, занести новые данные в ресурсы при успешной оплате.
 	call	GAME.move_action
 	ld	a,(DATA.is_paid)
 	or	a
-	ret	nz		; оплата не прошла, выход.
+	jr	nz,show_no_money_message		; оплата не прошла, выход.
 
 		
 	; расчитать координаты движения тайлов карты, запонение буфер заднего фона задником карты.
@@ -192,11 +192,10 @@ player_move:
 	jr	nz,.loop
 	; залить область под картой частью спрайта задника карты.
 .un_bo:
-	ld	a,(DATA.cursor)
-	call	card_scr_by_cursor
-	call	clear_undercard
-	;
-	call	wait
+; 	ld	a,(DATA.cursor)
+; 	call	card_scr_by_cursor
+; 	call	clear_undercard
+; 	
 	call	CALC.tiles_from_bottom
 	call	GAME.clear_card_buff
 	; создание новой карты.
@@ -207,7 +206,20 @@ player_move:
 	; call	GAME.new_card_id
 	ld	(hl),a
 	push	af			; card index
+	push	af
+	ld	a,(DATA.cursor)
+	call	card_scr_by_cursor
+	; jr	$
+	ex	de,hl
+	ld	bc,#80
+	add	hl,bc
+	ex	de,hl
+	call	scr_to_attr
+	pop	af
+	call	_DISPLAY.under_card_line
 	call	_DISPLAY.card_frame	; отрисовать текст карты и ее название.
+	call	_DISPLAY.cursor
+	call	wait
 .l3:
 	; движение тайлов карты из под экрана к позиции курсора, выравнивание ресурсов (если еще не завершено)
 	ei
@@ -219,7 +231,6 @@ player_move:
 	jr	nz,.l3
 	pop	af			; card index
 	call	_DISPLAY.card_sprite	; еще раз отрисовать все тайлы карты (прост там функция орисовки линии значений под картой)
-	call	_DISPLAY.cursor
 	call	wait
 	ret
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -244,6 +255,7 @@ enemy_move:
 	jp	nz,.discard_last_card
 
 	call	_DISPLAY.clear_cursor
+
 	ld	a,20
 	call	wait + 2
 	call	GAME.new_cursor_id
@@ -274,7 +286,7 @@ enemy_move:
 	; отобразить текст карты.
 	call	_DISPLAY.card_frame
 	call	GAME.fill_buff
-	call	comp_cursor_move
+	call	comp_cursor_move	; TODO перемещение курсора должно быть перед началом отображения калькуляции значений ресурсов
 
 	; draw card
 	ld	a,(DATA.cursor)
@@ -327,9 +339,9 @@ enemy_move:
 	xor	a
 	ld	(en_disc),a
 	; залить область под картой частью спрайта задника карты.
-	ld	a,(deceptive_cursor_end)
-	call	card_scr_by_cursor
-	call	clear_undercard
+	; ld	a,(deceptive_cursor_end)
+	; call	card_scr_by_cursor
+	; call	clear_undercard
 
 	; создание новой карты.
 	call	CARD_UTILS.card_id_by_cursor	;	hl - адрес индекса карты по курсору
@@ -349,9 +361,9 @@ enemy_move:
 .fin:
 	ld	a,0
 	ld	(DATA.cursor),a
-	ld	a,(DATA.play_again)
-	or	a
-	call	z,_DISPLAY.cursor
+	; ld	a,(DATA.play_again)
+	; or	a
+	; call	z,_DISPLAY.cursor
 	ret
 ;
 .discard_last_card:
@@ -483,17 +495,6 @@ pay:
 .cant_pay:
 	ld	a,1
 	ld	(DATA.is_paid),a	; установить значение карты как: НЕ ОПЛАЧЕНО.
-	;	TODO	сообщение о нехватке ресурсов.
-	push	af
-	ld	bc,28233
-.loop
-	ld	a,c
-	out	(254),a
-	dec	bc
-	ld	a,b
-	or	c
-	jr	nz,.loop		
-	pop	af
 	ret
 
 

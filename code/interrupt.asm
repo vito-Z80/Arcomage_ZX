@@ -7,6 +7,22 @@ interrupt:
         exa
         push hl,de,bc,af
 	
+        call    _DISPLAY.info_text
+        call	_DISPLAY.info_attr
+        ld      a,(_DISPLAY.mess_timer)
+        or      a
+        jr      z,.no_clear
+        inc     a
+        ld      (_DISPLAY.mess_timer),a
+        cp      #FF
+        jr      c,.no_clear
+        call    _DISPLAY.clear_info
+	xor	a
+	ld	(_DISPLAY.mess_timer),a
+.no_clear:
+
+        call    RENDERING.flash_player
+
         pop af,bc,de,hl
         exa
         exx

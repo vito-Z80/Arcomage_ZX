@@ -6,7 +6,7 @@
             "type": "shell",
             "command": "./sjasmplus/sjasmplus",
             "args": [
-                "code/main.asm",
+                "arcomage.asm",
                 "--nofakes",
             ],
             "problemMatcher": {

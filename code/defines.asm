@@ -23,12 +23,6 @@ BORDER	macro color
 	out	(254),a
 	endm
 
-
-;	+ Индексы информационных сообщений.
-	struct	_MESSAGE
-
-	ends
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ;	+ если != 0 текст карт переходит на новую строку после точки.
 NEW_LINE_BY_DOT			=	1	
@@ -61,12 +55,12 @@ E_VAL_GEMS_SCR_ADDR:		equ	E_VAL_MAGIC_SCR_ADDR - #03
 E_VAL_DUNGEON_SCR_ADDR:		equ	#48dF
 E_VAL_RECRUITS_SCR_ADDR:	equ	E_VAL_DUNGEON_SCR_ADDR - #03
 
-TEXT_NAME_SCR_ADDR		equ	#402C - #21	;	card name display address
-TEXT_FRAME_SCR_ADDR		equ	#402C
-TEXT_FRAME_ATTR_ADDR		equ	#582C
+TEXT_NAME_SCR_ADDR		equ	#402B	;	card name display address
+TEXT_FRAME_SCR_ADDR		equ	TEXT_NAME_SCR_ADDR + #21
+TEXT_FRAME_ATTR_ADDR		equ	#584C
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 TEXT_FRAME_WIDTH		equ	8
-TEXT_FRAME_HEIGHT		equ	8
+TEXT_FRAME_HEIGHT		equ	7
 TEXT_FRAME_DIGIT_COLOR		equ	%01000101
 TEXT_FRAME_TEXT_COLOR		equ	%01000110
 
@@ -90,9 +84,9 @@ COLOR_WHITE			equ	7
 
 COLOR_WARNING			equ	%01010111
 
-COLOR_QUARRY			equ	%01011001
-COLOR_MAGIC			equ	%01101001
-COLOR_DUNGEON			equ	%01100001
+COLOR_QUARRY			equ	%01011000
+COLOR_MAGIC			equ	%01101000
+COLOR_DUNGEON			equ	%01100000
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //	The system variables:	https://worldofspectrum.org/ZXBasicManual/zxmanchap25.html	  //

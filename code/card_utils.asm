@@ -84,19 +84,30 @@ clear_text_storage:
 	ld 	(hl),END_CARD_TEXT
 	ldir
 	ret
-;	+ подгоняет значение ресурса к диапазону 0-999.
+;	+ держит значение ресурса в диапазоне 0-999.
 ;	+ HL	-	resource value;
-resource_limiter_999:
+resource_range:
 	ld	a,h
-	cp	#FF
-	jr	z,.set_zero
-	cp	high MAX_RESOURCES
-	ret	c
-	ld	a,l
-	cp	low MAX_RESOURCES
+	cp	#80
+	jr	nc,.set_zero
+	; flag C is set
+	push	de,hl
+	ld	de,MAX_RESOURCES - 1
+	sbc	hl,de
+	pop	hl,de
 	ret	c
 	ld	hl,MAX_RESOURCES
-	ret
+	ret	
+	; ld	a,h
+	; cp	#FF
+	; jr	z,.set_zero
+	; cp	high MAX_RESOURCES
+	; ret	c
+	; ld	a,l
+	; cp	low MAX_RESOURCES
+	; ret	c
+	; ld	hl,MAX_RESOURCES
+	; ret
 .set_zero:
 	ld	hl,0
 	ret
@@ -106,7 +117,6 @@ resource_limiter_999:
 ;	+ HL	-	resource address. 
 ;	+ C	-	value.
 ;	+ B 	- 	resource offset.
-;	+ optional return:	HL	-	адрес измененного ресурса
 calc_resource:
 	ld	a,b
 	cp	RES_OFFSET.QUARRY
@@ -128,7 +138,7 @@ calc_resource:
 	ex	de,hl
 	add	hl,bc
 	pop	bc
-	call	resource_limiter_999
+	call	resource_range
 	ex	de,hl
 	ld	(hl),d
 	dec	hl
