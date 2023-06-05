@@ -400,7 +400,7 @@ player_cards:
 	jr	z,.show_card
 	;	hide card - show back
 	ld	hl,card_back_raw
-	call	RENDERING.sprite_4x5
+	call	RENDERING.sprite_4x4
 	jr	.sd
 .show_card:
 	call	RENDERING.sprite_4x4
@@ -585,7 +585,21 @@ comp_cards:
 	push	af
 	call	card_scr_by_cursor
 	ld	hl,card_back_raw
-	call	RENDERING.sprite_4x5
+	push	de
+	call	RENDERING.sprite_4x4
+	pop	hl
+	ld	bc,128
+	add	hl,bc
+	ex	de,hl
+	ld	b,4
+.footer:
+	push	bc,de
+	ld	hl,card_footer
+	call	RENDERING.symbol_attr
+	pop	de,bc
+	inc	e
+	djnz	.footer
+	
 	pop	af
 	inc	a
 	cp	CARDS_ON_TABLE
@@ -797,6 +811,7 @@ calc_tile:
 	ld	a,d
 	cp	#58
 	jr	nc,.fin_	; no draw if DE in attributes address or more
+	
 	call	RENDERING.symbol
 	dec	d
 	call	scr_to_attr
@@ -810,10 +825,7 @@ calc_tile:
 ;	+ center, left, right
 FONT:	equ	#3C00
 cursor_tiles_table:
-	; dw	FONT + 'L' * 8, FONT + 'R' * 8, FONT + '1' * 8, FONT + 'l' * 8, FONT + 'r' * 8
 	dw	frame_top_left, frame_top_right, frame_top, frame_left, frame_right
-; cursor_free_tiles_table:
-; 	dw	FONT + ' ' * 8, FONT + ' ' * 8, FONT + ' ' * 8, FONT + ' ' * 8, FONT + ' ' * 8
 cursor:
 	ld	a,(DATA.cursor)
 	ld	ix,cursor_tiles_table
@@ -958,92 +970,42 @@ clear_cursor:
 	ld	e,a
 	ld	c,0
 	jr	paint_cursor.blck
-
-
-
-	;
-	
-	
-	
-	
-	
-; cursor:
-; 	ld	a,(DATA.cursor)
-; 	call	card_scr_by_cursor	; DE - screen address
-; 	ld	a,e
-; 	sub	33
-; 	ld	e,a
-
-; 	push	de,de
-; 	; top left
-; 	ld	hl,frame_top_left
-; 	call	RENDERING.symbol
-; 	; left
-; 	ld	c,4
-; .left_side:
-; 	dec	d
-; 	call	down_de
-; 	ld	hl,frame_left
-; 	call	RENDERING.symbol
-; 	dec	c
-; 	jr	nz,.left_side
-; 	dec	d
-; 	; bottom left
-; 	ld	hl,frame_bototm_left
-; 	call	down_de
-; 	call	RENDERING.symbol
-; 	pop	de
-; 	; top
-; 	inc	de
-; 	ld	a,d
-; 	add	6
-; 	ld	d,a
-; 	ex	de,hl
-; 	ld	b,3
-; 	call	RENDERING.fill_line
-; 	ld	a,%10110101
-; 	ld	(hl),a
-; 	call	CARD_UTILS.card_id_by_cursor
-; 	call	CARD_UTILS.card_color_by_id
-; 	ld	a,c
-; 	rrca
-; 	rrca
-; 	rrca
-; 	and	7
-; 	or	#40
-; 	pop	de
-; .paint:
-; 	ld	c,a	; color
-; 	call	scr_to_attr
-; 	ex	de,hl
-	
-; 	ld	(hl),c
-; 	inc	l
-; 	ld	(hl),c
-; 	inc	l
-; 	ld	(hl),c
-; 	inc	l
-; 	ld	(hl),c
-; 	inc	l
-; 	ld	(hl),c
-; 	push	hl
-; 	ld	de,32-4
-; 	add	hl,de
-; 	ld	de,32
-; 	ld	b,5
-; 	call	.v_lin
-; 	pop	hl
-	
-; 	inc	l
-; 	ld	c,0
-; 	ld	b,6
-; .v_lin:
-; 	ld	(hl),c
-; 	add	hl,de
-; 	djnz	.v_lin
-; 	ret
-	
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+;	+ print text
+;	+ HL - text address
+;	+ DE - screen address
+text:
+	ld	a,1
+	ld	(.half + 1),a
+.loop:
+	ld	a,(hl)			; char
+	cp	END_CARD_TEXT
+	ret	z			; end of message
+	push	hl
+	call	char_from_font		; HL - char address
+	push	de
+.half:
+	ld	c,0
+	push	bc
+	call	RENDERING.draw_half
+	pop	bc
+	ld	a,1
+	xor	c
+	ld	(.half + 1),a
+	pop	de
+	jr	nz,.no_shift
+	inc	e
+.no_shift:
+	pop	hl
+	inc	hl
+	jr	.loop
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
 mess_id:		db	#FF
 mess_pre_id:		db	#FF
 mess_char_addr:		dw	0
@@ -1162,6 +1124,44 @@ clear_info:
 	dec	a
 	ret	z
 	jr	.l2
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+tower_wall:
+	ld	hl,tower_wall
+	pp_xy_de_scr 5,13
+	ld	b,16
+	push	bc
+	push	de
+.loop:
+	push	bc
+	push	de
+	ldi
+	ldi
+	ldi
+	pop	de
+	call	down_de
+	pop	bc
+	djnz	.loop
+	pop	de
+	call	scr_to_attr
+	ex	de,hl
+	ld	de,32-2
+	pop	af
+	rrca
+	rrca
+	rrca
+	ld	b,a
+	ld	a,COLOR_DUNGEON
+.loop_attr:
+	ld	(hl),a
+	inc	l
+	ld	(hl),a
+	inc	l
+	ld	(hl),a
+	add	hl,de
+	djnz	.loop_attr
+	ret
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	endmodule

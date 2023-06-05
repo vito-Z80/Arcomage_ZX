@@ -61,6 +61,7 @@ end_code:
 	if __ERRORS__ = 0
 		labelslist "user.l"
 		shellexec "C:\ZX\emul\Xpeccy0.6.20230425\xpeccy -s3 --labels C:\ZX\projects\Arcomage_tests\user.l Arcomage.tap"
+		; shellexec "C:\ZX\emul\US0371\unreal.exe Arcomage.tap"
 	endif
 
 

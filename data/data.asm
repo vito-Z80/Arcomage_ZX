@@ -92,17 +92,42 @@ hundred_storage:
 ;	+ хранилище двузначного целого числа в виде текста
 tenth_storage:
 	db	0, 0, END_CARD_TEXT
-
-
+kempston_8_bits:
+	db	#1F, 2
+	db	#1F, 1
+	db	#1F, 16
+	db	#1F, 64
+	db	#1F, 128
+kempston_5_bits:
+	db	#1F, 2
+	db	#1F, 1
+	db	#1F, 16
+	db	#1F, 20
+	db	#1F, 24
+keyboard:
+	db	#DF, 2
+	db	#DF, 1
+	db	#7F, 1
+	db	#FD, 4
+	db	#FE, 1
+end_keyboard:
+player_key_left:
+	db	0,0
+player_key_right:
+	db	0,0
+player_key_move:
+	db	0,0
+player_key_discard:
+	db	0,0
+player_key_pause:
+	db	0,0
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////////////// ниже нулевы данные ///////////////
-	db	0
 global_seed
 	dw	0
 ;	Сложность игры. Обеспечивает уровень качества выдаваемых карт для обоих игроков, выбор карты для хода компьютера.
 ;	+ 0 - hard
-;	+ 1 - normal
-;	+ 2 - easy
+;	+ 1 - easy
 difficulty:
 	db	0
 ;	+ хранилище распакованного текста карты для последующего отображения на экране.
@@ -197,8 +222,9 @@ card_end_position_table:
 ;	+ Буфер перемещаемых симаолов карты (16 х 8)
 move_buff:
 	block	144, 0
-
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+; kemp_start_byte:		db	0
+kemp_disable:			db	0
 	display "move_buff: ", /A, move_buff
 
 	endmodule

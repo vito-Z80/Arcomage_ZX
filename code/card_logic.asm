@@ -657,7 +657,7 @@ jump_corrosion_cloud:
 	call	PLAYER.active_res_addr
 	xor	a
 	cp	(HL)
-	jp	c,jump_stone_giant.damage10
+	jp	z,jump_stone_giant.damage10
 	jp	jump_ogre
 jump_unicorn:
 	; (89) 	IF MAGIC > ENEMY MAGIC, 12 DAMAGE, ELSE 8 DAMAGE.

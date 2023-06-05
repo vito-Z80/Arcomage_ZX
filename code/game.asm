@@ -11,9 +11,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 init:
-
 	;	сброс индекса курсора. предыдущий курсор не должен совпадать с текущим для первого отображения курсора 
 	xor	a
+	call	clear_screen
 	ld	(DATA.cursor),a
 	ld	(DATA.whose_move),a
 	ld	(_DISPLAY.mess_timer),a
@@ -75,20 +75,15 @@ init:
 	call	_DISPLAY.card_name
 	call	_DISPLAY.card_text
 	call 	_DISPLAY.cursor
-
+	; атрибутная линия под башни, стены.
+	ld	hl,#59E0
+	ld	b,#20
+	ld	a,7
+	call	RENDERING.paint_line.loop
+	call	_DISPLAY.tower_wall
 	ret
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-wait:
-	ld	a,0
-	dec	a
-	ret	c
-	ld	(wait + 1),a
-	ret
-set_wait:
-	ld	a,50
-	ld	(wait + 1),a
-	ret
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 is_res_alignment:
@@ -98,6 +93,7 @@ phase_card_from_bottom:
 
 
 run:
+	ld	(.end_game_loop + 1),sp
 	call	_DISPLAY.alignment_resources	
 	ld	a,(DATA.play_again)
 	or	a
@@ -120,9 +116,14 @@ run:
 
 	ld	a,(DATA.whose_move)
 	or	a
-	jp	z,PLAYER.key_polling
-	jp	PLAYER.enemy_move
-
+	push	af
+	call	z,PLAYER.control_polling
+	pop	af
+	call	nz,PLAYER.enemy_move
+.end_game_loop:
+	ld	sp,0
+	ld	hl,run
+	ret
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ;	+ установка значений ресурсов обоим игрокам по стартовому шаблону.
@@ -249,7 +250,7 @@ fill_buff:
 	ld	de,DATA.move_buff
 	ld	hl,card_back_raw
 	ld	a,16
-	ld	ix,card_back_raw + 160
+	ld	ix,card_back_raw + 128		; attr addr
 .loop:
 	exa
 	ld	bc,8

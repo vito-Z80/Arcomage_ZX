@@ -1,5 +1,4 @@
 ;	+ key_polling
-;	+ clear_keys
 ;	+ pay
 ;	+ 
 ;	+ get_res_addr
@@ -11,67 +10,41 @@
 ;	+ non_active_res_addr
 	module PLAYER
 
-player_key_left:
-	db	#DF, 2
-player_key_right:
-	db	#DF, 1
-player_key_move:
-	db	#7F, 1
-player_key_discard:
-	db	#FD, 4
-player_key_pause:
-	db	#FE, 1
+
 
 same_key:
 	db	0
 
-key_jumps:
+key_jump:
 	dw	move_left
 	dw	move_right
 	dw	player_move
 	dw	press_discard
 	dw	press_pause
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-;	+ clear player key polling
-clear_keys:
-	ld	hl,PLAYER.player_key_left
-	ld	de,PLAYER.player_key_left + 1
-	ld	bc,player_key_pause + 1 - player_key_left
-	ld	(hl),0
-	ldir
-	ret
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-key_polling:
-        xor 	a
-        in 	a,(#fe)
-        cpl
-        and 	%00011111
-	jr	nz,.np
-	ld	(same_key),a
-.np
 
-	ld	de,key_jumps - 2
-	ld	hl,player_key_left
-.loop:
-	ld	a,l
-	cp	low player_key_pause + 2
-	ret	z
-	inc	de
-	inc	de
+control_polling:
+	ld	hl,DATA.keyboard + 6
+	; discard key
+	call	INPUT.listener_with_pre
+	jp	z,press_discard
+	inc	hl
+	; pause key
 	ld	b,(hl)
 	inc	hl
-	call 	INPUT.listener
+	call	INPUT.listener
 	cp	(hl)
-	inc	hl
-	jr	nz,.loop
-	
-	ld	a,(same_key)
-	cp	l
-	ret	z		;	выход если текущая и предыдущая нажатые клавиши равны.
-	ld	a,l
-	ld	(same_key),a
+	jp	z,press_pause
 
+	ld	a,(MAIN_MENU.select_control + 1)
+	rrca
+	jp	c,INPUT.keyboard_polling
+	jp	INPUT.kempston_polling
+.jump
 	ex	de,hl
 	ld	c,(hl)
 	inc	hl
@@ -83,7 +56,8 @@ key_polling:
 
 move_left:
 	sub	1
-	ret	c
+	jr	nc,.end
+	ld	a,CARDS_ON_TABLE - 1
 .end:
 	ld	(DATA.cursor),a
 	call	_DISPLAY.clear_cursor
@@ -92,8 +66,10 @@ move_left:
 move_right:
 	inc	a
 	cp	CARDS_ON_TABLE
-	ret	nc
+	jr	c,move_left.end
+	xor	a
 	jr	move_left.end
+
 
 press_discard:
 	call 	CARD_UTILS.card_id_by_cursor
@@ -109,7 +85,7 @@ press_discard:
 	; call	card_scr_by_cursor
 	; call	clear_undercard
 .loop:
-	; движение тайлов карты вниз за экран, выравнивание ресурсов (если еще не завершено)
+
 	ei
 	halt
 
@@ -121,6 +97,7 @@ press_discard:
 	jr	nz,.loop
 	ld	(DATA.force_discard_card),a
 	call	player_move.un_bo
+	call	wait
 	jp	pay.move_complete
 .cant_discard:
 	; Указать индекс для отображения текста что нельзя скинуть эту карту.
@@ -132,28 +109,7 @@ press_pause:
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-;	+ DE - card screen addres
-clear_undercard:
-	ex	de,hl
-	ld	bc,128
-	add	hl,bc
-	ex	de,hl
-	ld	b,4
-	ld	hl,card_back_raw + 128
-	ld	ix,card_back_raw + 176
-.next_symb:
-	push	bc
-	push	de
-	call	RENDERING.symbol
-	dec	d
-	call	scr_to_attr
-	ld	a,(ix)
-	ld	(de),a
-	pop	de
-	inc	e,ix
-	pop	bc
-	djnz	.next_symb
-	ret
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 show_force_discard_message:
 	ld	a,2
@@ -206,7 +162,6 @@ player_move:
 	; call	GAME.new_card_id
 	ld	(hl),a
 	push	af			; card index
-	push	af
 	ld	a,(DATA.cursor)
 	call	card_scr_by_cursor
 	; jr	$
@@ -219,7 +174,9 @@ player_move:
 	call	_DISPLAY.under_card_line
 	call	_DISPLAY.card_frame	; отрисовать текст карты и ее название.
 	call	_DISPLAY.cursor
-	call	wait
+	ld	a,32
+	call	wait + 2
+	; call	wait
 .l3:
 	; движение тайлов карты из под экрана к позиции курсора, выравнивание ресурсов (если еще не завершено)
 	ei
@@ -229,9 +186,10 @@ player_move:
 	ld	a,(GAME.phase_card_from_bottom)
 	or	a
 	jr	nz,.l3
-	pop	af			; card index
-	call	_DISPLAY.card_sprite	; еще раз отрисовать все тайлы карты (прост там функция орисовки линии значений под картой)
-	call	wait
+	; call	_DISPLAY.card_sprite	; еще раз отрисовать все тайлы карты (прост там функция орисовки линии значений под картой)
+	ld	a,(DATA.play_again)
+	dec	a
+	call	nz,wait
 	ret
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 en_disc:
@@ -246,6 +204,7 @@ deceptive_cursor_end:
 enemy_move:
 	ld	a,(DATA.cursor)
 	ld	(.fin + 1),a		; save player cursor index
+	call	_DISPLAY.clear_cursor + 3
 
 	call CALC.comp_cards_sort	; сортировка карт компьютера от лучшей к худшей.
 
@@ -254,7 +213,6 @@ enemy_move:
 	; скинуть любую карту согласно условиям спец. карт, и выйти.
 	jp	nz,.discard_last_card
 
-	call	_DISPLAY.clear_cursor
 
 	ld	a,20
 	call	wait + 2
@@ -419,8 +377,7 @@ comp_cursor_move:
 	sub	(hl)
 	ret	z
 	jr	c,.minus
-	ld	a,10
-	call	wait + 2
+	call	wait_without_res
 	ld	a,(hl)
 	inc	(hl)
 	push	hl
@@ -430,8 +387,7 @@ comp_cursor_move:
 	call	_DISPLAY.cursor + 3
 	jr	comp_cursor_move
 .minus:
-	ld	a,10
-	call	wait + 2
+	call	wait_without_res
 	ld	a,(hl)
 	dec	(hl)
 	push	hl
@@ -441,6 +397,16 @@ comp_cursor_move:
 	call	_DISPLAY.cursor + 3
 	jr	comp_cursor_move
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+wait_without_res:
+	ld	a,10
+.l2:
+	; задержка.
+	ei
+	halt
+	dec	a
+	ret	z
+	jr	.l2
+	ret
 ;	+ wait 
 wait:
 	ld	a,51

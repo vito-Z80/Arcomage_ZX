@@ -17,15 +17,15 @@
 ; 	+ HL - char address.
 ; 	+ DE - screen address.
 ;	+ by symbols
-sprite_4x5:
-	ld	bc,.attr
-	push	bc
-	push	de
-	ld	c,#05
-	jr	sprite_4x4.l2
-.attr:
-	ld	b,1
-	jr	sprite_4x4.attr
+; sprite_4x5:
+; 	ld	bc,.attr
+; 	push	bc
+; 	push	de
+; 	ld	c,#05
+; 	jr	sprite_4x4.l2
+; .attr:
+; 	ld	b,1
+; 	jr	sprite_4x4.attr
 ; 	+ HL - first sprite char address.
 ;	+ DE - screen address.
 ;	+ by symbols

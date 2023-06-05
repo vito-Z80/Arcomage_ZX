@@ -305,6 +305,66 @@ fill_attr_rect:	ifused
 	jr	fill_attr_rect
 	endif
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+;	+ B - width
+;	+ C - height
+;	+ HL - char for fill address
+;	+ DE - screen address
+fill_scr_rect:	ifused
+	ld	(.line + 1),hl
+.l2:
+	push	bc
+	push	de
+.line:
+	ld	hl,0
+	push	bc,de
+	call	RENDERING.symbol
+	pop	de,bc
+	inc	e
+	djnz	.line
+	pop	de
+	call	down_symbol
+	pop	bc
+	dec	c
+	ret	z
+	jr	.l2
+	endif
+////////////////////////////////////////////////////////////////////////////////////////////////////
+;	+ A - fill byte
+clear_screen:	ifused
+	ld	hl,#4000
+	ld	de,#4001
+	ld	bc,#1AFF
+	ld	(hl),a
+	ldir
+	ret
+	endif
+////////////////////////////////////////////////////////////////////////////////////////////////////
+;	+ Номер первого встречающегося выключенного бита. #FF - не юзать.
+;	+ A - байт.
+;	+ return: C - номер бита.
+first_res_bit:	ifused
+	ld	c,#FF
+.loop:
+	inc	c
+	rrca
+	ret	nc
+	jr	.loop
+	endif
+////////////////////////////////////////////////////////////////////////////////////////////////////
+;	+ Номер первого встречающегося включенного бита.
+;	+ A - байт.
+;	+ return: C - номер бита.
+; first_set_bit:	ifused
+; 	ld	c,0
+; 	or	a
+; 	ret	nz
+; .loop:
+; 	inc	c
+; 	rrca
+; 	ret	c
+; 	jr	.loop
+; 	endif
+////////////////////////////////////////////////////////////////////////////////////////////////////
 				ASCII_CONVERTER
 grid:				ATTR_GRID
 ; f4d:				FONT_4_DOUBLING font4
@@ -339,4 +399,27 @@ card_scr_by_cursor:
 	ld	e,a
 	ld	d,#50
 	ret
+////////////////////////////////////////////////////////////////////////////////////////////////////
+;	+ A - key
+;	+ B - port
+;	+ return: HL - char address
+char_addr_from_table:
+	push	af
+	ld	a,b
+	call	first_res_bit
+	ld	a,c
+	; * 5
+	rlca
+	rlca
+	add	c
+	ld	de,INPUT.chars
+	call	low_addr_ret
+	pop	af
+	cpl
+	call	first_res_bit
+	ld	a,c
+	ex	de,hl
+	call	low_addr_ret
+	ld	a,(hl)
+	jp	char_from_font
 ////////////////////////////////////////////////////////////////////////////////////////////////////
